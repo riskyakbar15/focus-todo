@@ -7,65 +7,10 @@ import {
   SafeAreaView,
 } from "react-native";
 import { useRouter } from "expo-router";
-import Svg, { Circle } from "react-native-svg";
 import { usePomodoro } from "../hooks/usePomodoro";
 import { useTaskStore } from "../store/taskStore";
 import { TIMER_LABELS } from "../constants/timer";
-
-// ─── SVG lingkaran countdown ───────────────────────────────────────────────
-const RADIUS = 110;
-const STROKE = 10;
-const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-const SIZE = (RADIUS + STROKE) * 2;
-
-function TimerCircle({
-  secondsLeft,
-  totalSeconds,
-  mode,
-}: {
-  secondsLeft: number;
-  totalSeconds: number;
-  mode: string;
-}) {
-  const progress = secondsLeft / totalSeconds;
-  const strokeDashoffset = CIRCUMFERENCE * (1 - progress);
-
-  const trackColor = "#F0EEF8";
-  const arcColor =
-    mode === "focus"
-      ? "#534AB7"
-      : mode === "short_break"
-        ? "#1D9E75"
-        : "#185FA5";
-
-  return (
-    <Svg width={SIZE} height={SIZE}>
-      {/* Track (latar lingkaran) */}
-      <Circle
-        cx={SIZE / 2}
-        cy={SIZE / 2}
-        r={RADIUS}
-        stroke={trackColor}
-        strokeWidth={STROKE}
-        fill="none"
-      />
-      {/* Arc progres */}
-      <Circle
-        cx={SIZE / 2}
-        cy={SIZE / 2}
-        r={RADIUS}
-        stroke={arcColor}
-        strokeWidth={STROKE}
-        fill="none"
-        strokeDasharray={CIRCUMFERENCE}
-        strokeDashoffset={strokeDashoffset}
-        strokeLinecap="round"
-        rotation="-90"
-        origin={`${SIZE / 2}, ${SIZE / 2}`}
-      />
-    </Svg>
-  );
-}
+import TimerCircle, { SIZE } from "../components/TimerCircle";
 
 // ─── Format detik → MM:SS ──────────────────────────────────────────────────
 function formatTime(seconds: number): string {
