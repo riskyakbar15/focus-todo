@@ -1,106 +1,129 @@
-import { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-} from "react-native";
+import { useEffect } from "react";
+import { View, Text, FlatList, StyleSheet, SafeAreaView } from "react-native";
 import { useRouter } from "expo-router";
 import { useTaskStore } from "../store/taskStore";
+import TaskItem from "../components/TaskItem";
+import TaskInput from "../components/TaskInput";
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { tasks, loadTasks, addTask, toggleTask, deleteTask, setActiveTask } =
-    useTaskStore();
-  const [input, setInput] = useState("");
+  const {
+    tasks,
+    activeTaskId,
+    loadTasks,
+    addTask,
+    toggleTask,
+    deleteTask,
+    setActiveTask,
+  } = useTaskStore();
 
+  // Load tasks dari AsyncStorage saat pertama buka
   useEffect(() => {
     loadTasks();
   }, []);
-
-  const handleAdd = () => {
-    if (input.trim()) {
-      addTask(input.trim());
-      setInput("");
-    }
-  };
 
   const handleStartTimer = (id: string) => {
     setActiveTask(id);
     router.push("/timer");
   };
 
+  // Pisah task aktif/belum selesai dan yang sudah selesai
+  const pending = tasks.filter((t) => !t.completed);
+  const completed = tasks.filter((t) => t.completed);
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.heading}>Focus Todo</Text>
+    <SafeAreaView style={styles.safe}>
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.heading}>Focus Todo</Text>
+          <Text style={styles.subheading}>{pending.length} task tersisa</Text>
+        </View>
 
-      <View style={styles.inputRow}>
-        <TextInput
-          style={styles.input}
-          value={input}
-          onChangeText={setInput}
-          placeholder="Tambah task baru..."
-          onSubmitEditing={handleAdd}
-        />
-        <TouchableOpacity style={styles.addBtn} onPress={handleAdd}>
-          <Text style={styles.addBtnText}>+</Text>
-        </TouchableOpacity>
-      </View>
+        {/* Input tambah task */}
+        <TaskInput onAdd={addTask} />
 
-      <FlatList
-        data={tasks}
-        keyExtractor={(t) => t.id}
-        renderItem={({ item }) => (
-          <View style={styles.taskRow}>
-            <TouchableOpacity onPress={() => toggleTask(item.id)}>
-              <Text style={item.completed ? styles.done : styles.taskTitle}>
-                {item.title}
+        {/* Daftar task */}
+        <FlatList
+          data={[...pending, ...completed]}
+          keyExtractor={(t) => t.id}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listContent}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyIcon}>🍅</Text>
+              <Text style={styles.emptyText}>Belum ada task.</Text>
+              <Text style={styles.emptySubtext}>
+                Tambah task di atas untuk mulai fokus!
               </Text>
-              <Text style={styles.sessions}>{item.sessions} sesi</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => handleStartTimer(item.id)}>
-              <Text style={styles.timerBtn}>▶ Fokus</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      />
-    </View>
+            </View>
+          }
+          ItemSeparatorComponent={() => <View style={{ height: 2 }} />}
+          renderItem={({ item }) => (
+            <TaskItem
+              task={item}
+              isActive={item.id === activeTaskId}
+              onToggle={toggleTask}
+              onDelete={deleteTask}
+              onStartTimer={handleStartTimer}
+            />
+          )}
+        />
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, paddingTop: 60, backgroundColor: "#fff" },
-  heading: { fontSize: 26, fontWeight: "500", marginBottom: 20 },
-  inputRow: { flexDirection: "row", gap: 8, marginBottom: 20 },
-  input: {
+  safe: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    height: 44,
+    backgroundColor: "#fff",
   },
-  addBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 8,
-    backgroundColor: "#534AB7",
+  container: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 20,
+  },
+
+  // Header
+  header: {
+    marginBottom: 20,
+  },
+  heading: {
+    fontSize: 28,
+    fontWeight: "600",
+    color: "#1a1a1a",
+    letterSpacing: -0.5,
+  },
+  subheading: {
+    fontSize: 13,
+    color: "#aaa",
+    marginTop: 4,
+  },
+
+  // List
+  listContent: {
+    paddingBottom: 40,
+  },
+
+  // Empty state
+  emptyState: {
     alignItems: "center",
-    justifyContent: "center",
+    marginTop: 80,
+    gap: 8,
   },
-  addBtnText: { color: "#fff", fontSize: 22 },
-  taskRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 12,
-    borderBottomWidth: 0.5,
-    borderColor: "#eee",
+  emptyIcon: {
+    fontSize: 48,
+    marginBottom: 8,
   },
-  taskTitle: { fontSize: 15, color: "#1a1a1a" },
-  done: { fontSize: 15, color: "#aaa", textDecorationLine: "line-through" },
-  sessions: { fontSize: 11, color: "#888", marginTop: 2 },
-  timerBtn: { fontSize: 13, color: "#534AB7", fontWeight: "500" },
+  emptyText: {
+    fontSize: 16,
+    color: "#888",
+    fontWeight: "500",
+  },
+  emptySubtext: {
+    fontSize: 13,
+    color: "#bbb",
+    textAlign: "center",
+  },
 });
