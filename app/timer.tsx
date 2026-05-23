@@ -11,6 +11,7 @@ import { usePomodoro } from "../hooks/usePomodoro";
 import { useTaskStore } from "../store/taskStore";
 import { TIMER_LABELS } from "../constants/timer";
 import TimerCircle, { SIZE } from "../components/TimerCircle";
+import { useNotification } from "../hooks/useNotification";
 
 // ─── Format detik → MM:SS ──────────────────────────────────────────────────
 function formatTime(seconds: number): string {
@@ -26,6 +27,7 @@ export default function TimerScreen() {
   const router = useRouter();
   const { activeTaskId, tasks, addSession } = useTaskStore();
   const activeTask = tasks.find((t) => t.id === activeTaskId);
+  const { sendSessionNotification, cancelAllNotifications } = useNotification();
 
   const {
     mode,
@@ -35,12 +37,21 @@ export default function TimerScreen() {
     toggle,
     reset,
     switchMode,
-  } = usePomodoro((completedMode) => {
-    // Saat sesi fokus selesai, tambah session count ke task aktif
+  } = usePomodoro(async (completedMode) => {
+    // Kirim notifikasi saat sesi selesai
+    await sendSessionNotification(completedMode);
+    // Tambah session count ke task aktif jika mode fokus
     if (completedMode === "focus" && activeTaskId) {
       addSession(activeTaskId);
     }
   });
+
+  // Batalkan notifikasi terjadwal saat keluar layar
+  useEffect(() => {
+    return () => {
+      cancelAllNotifications();
+    };
+  }, []);
 
   // Total detik sesuai mode saat ini
   const DURATIONS: Record<string, number> = {
