@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Keyboard,
 } from "react-native";
+import { useTheme } from "../hooks/useTheme";
 
 interface TaskInputProps {
   onAdd: (title: string) => void;
@@ -14,6 +15,7 @@ interface TaskInputProps {
 
 export default function TaskInput({ onAdd }: TaskInputProps) {
   const [value, setValue] = useState("");
+  const { colors } = useTheme();
 
   const handleAdd = () => {
     const trimmed = value.trim();
@@ -23,22 +25,36 @@ export default function TaskInput({ onAdd }: TaskInputProps) {
     Keyboard.dismiss();
   };
 
+  const isDisabled = !value.trim();
+
   return (
     <View style={styles.container}>
       <TextInput
-        style={styles.input}
+        style={[
+          styles.input,
+          {
+            borderColor: colors.border,
+            backgroundColor: colors.backgroundSoft,
+            color: colors.text,
+          },
+        ]}
         value={value}
         onChangeText={setValue}
         placeholder="Tambah task baru..."
-        placeholderTextColor="#bbb"
+        placeholderTextColor={colors.textMuted}
         returnKeyType="done"
         onSubmitEditing={handleAdd}
         maxLength={100}
       />
       <TouchableOpacity
-        style={[styles.addBtn, !value.trim() && styles.addBtnDisabled]}
+        style={[
+          styles.addBtn,
+          {
+            backgroundColor: isDisabled ? colors.primaryMuted : colors.primary,
+          },
+        ]}
         onPress={handleAdd}
-        disabled={!value.trim()}
+        disabled={isDisabled}
         activeOpacity={0.8}
       >
         <Text style={styles.addBtnText}>+</Text>
@@ -57,23 +73,16 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 46,
     borderWidth: 1,
-    borderColor: "#E0DEF8",
     borderRadius: 10,
     paddingHorizontal: 14,
     fontSize: 15,
-    color: "#1a1a1a",
-    backgroundColor: "#FAFAFE",
   },
   addBtn: {
     width: 46,
     height: 46,
     borderRadius: 10,
-    backgroundColor: "#534AB7",
     alignItems: "center",
     justifyContent: "center",
-  },
-  addBtnDisabled: {
-    backgroundColor: "#C5C2E8",
   },
   addBtnText: {
     color: "#fff",
