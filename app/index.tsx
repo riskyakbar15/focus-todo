@@ -2,11 +2,13 @@ import { useEffect } from "react";
 import { View, Text, FlatList, StyleSheet, SafeAreaView } from "react-native";
 import { useRouter } from "expo-router";
 import { useTaskStore } from "../store/taskStore";
+import { useTheme } from "../hooks/useTheme";
 import TaskItem from "../components/TaskItem";
 import TaskInput from "../components/TaskInput";
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
   const {
     tasks,
     activeTaskId,
@@ -15,9 +17,10 @@ export default function HomeScreen() {
     toggleTask,
     deleteTask,
     setActiveTask,
+    moveUp,
+    moveDown,
   } = useTaskStore();
 
-  // Load tasks dari AsyncStorage saat pertama buka
   useEffect(() => {
     loadTasks();
   }, []);
@@ -27,47 +30,64 @@ export default function HomeScreen() {
     router.push("/timer");
   };
 
-  // Pisah task aktif/belum selesai dan yang sudah selesai
   const pending = tasks.filter((t) => !t.completed);
   const completed = tasks.filter((t) => t.completed);
+  const allTasks = [...pending, ...completed];
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.heading}>Focus Todo</Text>
-          <Text style={styles.subheading}>{pending.length} task tersisa</Text>
+          <Text style={[styles.heading, { color: colors.text }]}>
+            Focus Todo
+          </Text>
+          <Text style={[styles.subheading, { color: colors.textMuted }]}>
+            {pending.length > 0
+              ? `${pending.length} task tersisa`
+              : completed.length > 0
+                ? "Semua task selesai! 🎉"
+                : "Belum ada task"}
+          </Text>
         </View>
 
-        {/* Input tambah task */}
+        {/* Input */}
         <TaskInput onAdd={addTask} />
 
-        {/* Daftar task */}
+        {/* List */}
         <FlatList
-          data={[...pending, ...completed]}
+          data={allTasks}
           keyExtractor={(t) => t.id}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Text style={styles.emptyIcon}>🍅</Text>
-              <Text style={styles.emptyText}>Belum ada task.</Text>
-              <Text style={styles.emptySubtext}>
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                Belum ada task.
+              </Text>
+              <Text style={[styles.emptySubtext, { color: colors.textMuted }]}>
                 Tambah task di atas untuk mulai fokus!
               </Text>
             </View>
           }
-          ItemSeparatorComponent={() => <View style={{ height: 2 }} />}
-          renderItem={({ item }) => (
-            <TaskItem
-              task={item}
-              isActive={item.id === activeTaskId}
-              onToggle={toggleTask}
-              onDelete={deleteTask}
-              onStartTimer={handleStartTimer}
-            />
-          )}
+          renderItem={({ item, index }) => {
+            const pendingIndex = pending.findIndex((t) => t.id === item.id);
+            const isPending = !item.completed;
+            return (
+              <TaskItem
+                task={item}
+                isActive={item.id === activeTaskId}
+                isFirst={isPending && pendingIndex === 0}
+                isLast={isPending && pendingIndex === pending.length - 1}
+                onToggle={toggleTask}
+                onDelete={deleteTask}
+                onStartTimer={handleStartTimer}
+                onMoveUp={moveUp}
+                onMoveDown={moveDown}
+              />
+            );
+          }}
         />
       </View>
     </SafeAreaView>
@@ -77,36 +97,27 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: "#fff",
   },
   container: {
     flex: 1,
     paddingHorizontal: 24,
     paddingTop: 20,
   },
-
-  // Header
   header: {
     marginBottom: 20,
   },
   heading: {
     fontSize: 28,
     fontWeight: "600",
-    color: "#1a1a1a",
     letterSpacing: -0.5,
   },
   subheading: {
     fontSize: 13,
-    color: "#aaa",
     marginTop: 4,
   },
-
-  // List
   listContent: {
     paddingBottom: 40,
   },
-
-  // Empty state
   emptyState: {
     alignItems: "center",
     marginTop: 80,
@@ -118,12 +129,10 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: "#888",
     fontWeight: "500",
   },
   emptySubtext: {
     fontSize: 13,
-    color: "#bbb",
     textAlign: "center",
   },
 });
