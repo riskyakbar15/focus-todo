@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -27,7 +27,13 @@ export default function TimerScreen() {
   const router = useRouter();
   const { activeTaskId, tasks, addSession } = useTaskStore();
   const activeTask = tasks.find((t) => t.id === activeTaskId);
-  const { sendSessionNotification, cancelAllNotifications } = useNotification();
+  const scheduledNotificationRef = useRef<string | null>(null);
+  const isRunningRef = useRef(false);
+  const {
+    scheduleSessionEndNotification,
+    cancelNotification,
+    cancelAllNotifications,
+  } = useNotification();
 
   const {
     mode,
@@ -38,20 +44,58 @@ export default function TimerScreen() {
     reset,
     switchMode,
   } = usePomodoro(async (completedMode) => {
-    // Kirim notifikasi saat sesi selesai
-    await sendSessionNotification(completedMode);
+    scheduledNotificationRef.current = null;
     // Tambah session count ke task aktif jika mode fokus
     if (completedMode === "focus" && activeTaskId) {
       addSession(activeTaskId);
     }
   });
 
+  useEffect(() => {
+    isRunningRef.current = isRunning;
+  }, [isRunning]);
+
   // Batalkan notifikasi terjadwal saat keluar layar
   useEffect(() => {
     return () => {
-      cancelAllNotifications();
+      if (!isRunningRef.current) {
+        cancelAllNotifications();
+      }
     };
-  }, []);
+  }, [cancelAllNotifications]);
+
+  const cancelCurrentScheduledNotification = async () => {
+    if (scheduledNotificationRef.current) {
+      await cancelNotification(scheduledNotificationRef.current);
+    } else {
+      await cancelAllNotifications();
+    }
+    scheduledNotificationRef.current = null;
+  };
+
+  const handleToggle = async () => {
+    if (isRunning) {
+      await cancelCurrentScheduledNotification();
+      toggle();
+      return;
+    }
+
+    scheduledNotificationRef.current = await scheduleSessionEndNotification(
+      secondsLeft,
+      mode,
+    );
+    toggle();
+  };
+
+  const handleReset = async () => {
+    await cancelCurrentScheduledNotification();
+    reset();
+  };
+
+  const handleSwitchMode = async (newMode: typeof mode) => {
+    await cancelCurrentScheduledNotification();
+    switchMode(newMode);
+  };
 
   // Total detik sesuai mode saat ini
   const DURATIONS: Record<string, number> = {
@@ -107,7 +151,7 @@ export default function TimerScreen() {
           {(["focus", "short_break", "long_break"] as const).map((m) => (
             <TouchableOpacity
               key={m}
-              onPress={() => switchMode(m)}
+              onPress={() => handleSwitchMode(m)}
               style={[
                 styles.modeBtn,
                 mode === m && { backgroundColor: modeColor },
@@ -145,13 +189,13 @@ export default function TimerScreen() {
         {/* Tombol kontrol */}
         <View style={styles.controls}>
           {/* Reset */}
-          <TouchableOpacity onPress={reset} style={styles.secondaryBtn}>
+          <TouchableOpacity onPress={handleReset} style={styles.secondaryBtn}>
             <Text style={styles.secondaryBtnText}>↺</Text>
           </TouchableOpacity>
 
           {/* Start / Pause */}
           <TouchableOpacity
-            onPress={toggle}
+            onPress={handleToggle}
             style={[styles.primaryBtn, { backgroundColor: modeColor }]}
           >
             <Text style={styles.primaryBtnText}>
@@ -162,7 +206,7 @@ export default function TimerScreen() {
           {/* Skip */}
           <TouchableOpacity
             onPress={() =>
-              switchMode(
+              handleSwitchMode(
                 mode === "focus"
                   ? (sessionCount + 1) % 4 === 0
                     ? "long_break"

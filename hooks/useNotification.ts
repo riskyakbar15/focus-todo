@@ -1,11 +1,13 @@
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
+import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import { TimerMode } from "../types";
+
+const TIMER_CHANNEL_ID = "focus-todo-timer";
 
 // ─── Konfigurasi tampilan notifikasi saat app di foreground ───────────────
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true, // fallback untuk versi lama
     shouldShowBanner: true, // banner di atas layar (versi baru)
     shouldShowList: true, // tampil di notification center (versi baru)
     shouldPlaySound: true,
@@ -29,54 +31,137 @@ const NOTIF_CONTENT: Record<TimerMode, { title: string; body: string }> = {
   },
 };
 
+async function ensureAndroidNotificationChannel() {
+  if (Platform.OS !== "android") return;
+
+  await Notifications.setNotificationChannelAsync(TIMER_CHANNEL_ID, {
+    name: "Focus timer",
+    description: "Notifikasi untuk sesi fokus dan istirahat.",
+    importance: Notifications.AndroidImportance.MAX,
+    vibrationPattern: [0, 250, 250, 250],
+    lightColor: "#534AB7",
+    sound: "default",
+    lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+  });
+}
+
+function hasNotificationPermission(
+  permissions: Notifications.NotificationPermissionsStatus,
+) {
+  return (
+    permissions.granted ||
+    permissions.ios?.status === Notifications.IosAuthorizationStatus.AUTHORIZED ||
+    permissions.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL ||
+    permissions.ios?.status === Notifications.IosAuthorizationStatus.EPHEMERAL
+  );
+}
+
 // ─── Hook utama ────────────────────────────────────────────────────────────
 export function useNotification() {
-  // Minta izin notifikasi saat pertama kali hook dipanggil
+  // Android 13 baru menampilkan prompt izin setelah channel dibuat.
   useEffect(() => {
-    (async () => {
-      const { status } = await Notifications.requestPermissionsAsync();
-      if (status !== "granted") {
-        console.warn("Izin notifikasi tidak diberikan.");
-      }
-    })();
+    ensureAndroidNotificationChannel();
+  }, []);
+
+  const requestNotificationPermission = useCallback(async () => {
+    await ensureAndroidNotificationChannel();
+
+    const currentPermissions = await Notifications.getPermissionsAsync();
+    if (hasNotificationPermission(currentPermissions)) return true;
+
+    const requestedPermissions = await Notifications.requestPermissionsAsync({
+      ios: {
+        allowAlert: true,
+        allowBadge: false,
+        allowSound: true,
+      },
+    });
+
+    return hasNotificationPermission(requestedPermissions);
   }, []);
 
   // Kirim notifikasi langsung (saat sesi selesai)
-  const sendSessionNotification = async (completedMode: TimerMode) => {
+  const sendSessionNotification = useCallback(async (completedMode: TimerMode) => {
+    const canNotify = await requestNotificationPermission();
+    if (!canNotify) return false;
+
     const content = NOTIF_CONTENT[completedMode];
     await Notifications.scheduleNotificationAsync({
       content: {
         title: content.title,
         body: content.body,
         sound: true,
+        data: { screen: "timer", mode: completedMode },
       },
-      trigger: null, // null = langsung tampil sekarang
+      trigger:
+        Platform.OS === "android" ? { channelId: TIMER_CHANNEL_ID } : null,
     });
-  };
+    return true;
+  }, [requestNotificationPermission]);
 
   // Jadwalkan notifikasi pengingat (opsional — misalnya reminder mulai sesi)
-  const scheduleReminder = async (secondsFromNow: number, message: string) => {
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: "⏰ Focus Todo",
-        body: message,
-        sound: true,
-      },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-        seconds: secondsFromNow,
-      },
-    });
-  };
+  const scheduleReminder = useCallback(
+    async (secondsFromNow: number, message: string) => {
+      const canNotify = await requestNotificationPermission();
+      if (!canNotify) return null;
+
+      return Notifications.scheduleNotificationAsync({
+        content: {
+          title: "⏰ Focus Todo",
+          body: message,
+          sound: true,
+          data: { screen: "timer", reminder: true },
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+          seconds: secondsFromNow,
+          channelId: TIMER_CHANNEL_ID,
+        },
+      });
+    },
+    [requestNotificationPermission],
+  );
+
+  const scheduleSessionEndNotification = useCallback(
+    async (secondsFromNow: number, mode: TimerMode) => {
+      const canNotify = await requestNotificationPermission();
+      if (!canNotify) return null;
+
+      const content = NOTIF_CONTENT[mode];
+      return Notifications.scheduleNotificationAsync({
+        content: {
+          title: content.title,
+          body: content.body,
+          sound: true,
+          data: { screen: "timer", mode },
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+          seconds: secondsFromNow,
+          channelId: TIMER_CHANNEL_ID,
+        },
+      });
+    },
+    [requestNotificationPermission],
+  );
+
+  // Batalkan satu notifikasi terjadwal berdasarkan identifier.
+  const cancelNotification = useCallback(async (identifier: string | null) => {
+    if (!identifier) return;
+    await Notifications.cancelScheduledNotificationAsync(identifier);
+  }, []);
 
   // Batalkan semua notifikasi terjadwal (saat timer di-reset)
-  const cancelAllNotifications = async () => {
+  const cancelAllNotifications = useCallback(async () => {
     await Notifications.cancelAllScheduledNotificationsAsync();
-  };
+  }, []);
 
   return {
+    requestNotificationPermission,
     sendSessionNotification,
     scheduleReminder,
+    scheduleSessionEndNotification,
+    cancelNotification,
     cancelAllNotifications,
   };
 }

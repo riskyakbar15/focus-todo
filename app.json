@@ -27,6 +27,16 @@
       "favicon": "./assets/favicon.png"
     },
     "scheme": "focus-todo",
-    "plugins": ["expo-router"]
+    "plugins": [
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+          "color": "#534AB7",
+          "defaultChannel": "focus-todo-timer",
+          "enableBackgroundRemoteNotifications": false
+        }
+      ]
+    ]
   }
 }
