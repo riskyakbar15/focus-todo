@@ -10,12 +10,13 @@ interface TaskStore {
   toggleTask: (id: string) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
   addSession: (id: string) => Promise<void>;
-  setActiveTask: (id: string | null) => void;
+  setActiveTask: (id: string | null) => Promise<void>;
   moveUp: (id: string) => Promise<void>;
   moveDown: (id: string) => Promise<void>;
 }
 
 const STORAGE_KEY = "focus_todo_tasks";
+const ACTIVE_TASK_STORAGE_KEY = "focus_todo_active_task";
 
 const save = async (tasks: Task[]) => {
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
@@ -26,8 +27,13 @@ export const useTaskStore = create<TaskStore>()((set, get) => ({
   activeTaskId: null,
 
   loadTasks: async () => {
-    const raw = await AsyncStorage.getItem(STORAGE_KEY);
-    if (raw) set({ tasks: JSON.parse(raw) });
+    const [raw, activeTaskId] = await Promise.all([
+      AsyncStorage.getItem(STORAGE_KEY),
+      AsyncStorage.getItem(ACTIVE_TASK_STORAGE_KEY),
+    ]);
+    const tasks = raw ? JSON.parse(raw) : [];
+    const hasActiveTask = tasks.some((t: Task) => t.id === activeTaskId);
+    set({ tasks, activeTaskId: hasActiveTask ? activeTaskId : null });
   },
 
   addTask: async (title) => {
@@ -53,8 +59,10 @@ export const useTaskStore = create<TaskStore>()((set, get) => ({
 
   deleteTask: async (id) => {
     const tasks = get().tasks.filter((t) => t.id !== id);
-    set({ tasks });
+    const activeTaskId = get().activeTaskId === id ? null : get().activeTaskId;
+    set({ tasks, activeTaskId });
     await save(tasks);
+    if (!activeTaskId) await AsyncStorage.removeItem(ACTIVE_TASK_STORAGE_KEY);
   },
 
   addSession: async (id) => {
@@ -65,7 +73,14 @@ export const useTaskStore = create<TaskStore>()((set, get) => ({
     await save(tasks);
   },
 
-  setActiveTask: (id) => set({ activeTaskId: id }),
+  setActiveTask: async (id) => {
+    set({ activeTaskId: id });
+    if (id) {
+      await AsyncStorage.setItem(ACTIVE_TASK_STORAGE_KEY, id);
+    } else {
+      await AsyncStorage.removeItem(ACTIVE_TASK_STORAGE_KEY);
+    }
+  },
 
   // ─── Pindah task ke atas (hanya di antara task pending) ───────────────
   moveUp: async (id) => {
