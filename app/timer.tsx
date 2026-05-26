@@ -128,6 +128,8 @@ export default function TimerScreen() {
           <TouchableOpacity
             onPress={() => router.back()}
             style={styles.backBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Go back to tasks"
           >
             <Text style={styles.backText}>← Kembali</Text>
           </TouchableOpacity>
@@ -152,6 +154,15 @@ export default function TimerScreen() {
             <TouchableOpacity
               key={m}
               onPress={() => handleSwitchMode(m)}
+              accessibilityRole="button"
+              accessibilityLabel={`Switch to ${
+                m === "focus"
+                  ? "focus"
+                  : m === "short_break"
+                    ? "short break"
+                    : "long break"
+              } mode`}
+              accessibilityState={{ selected: mode === m }}
               style={[
                 styles.modeBtn,
                 mode === m && { backgroundColor: modeColor },
@@ -189,7 +200,12 @@ export default function TimerScreen() {
         {/* Tombol kontrol */}
         <View style={styles.controls}>
           {/* Reset */}
-          <TouchableOpacity onPress={handleReset} style={styles.secondaryBtn}>
+          <TouchableOpacity
+            onPress={handleReset}
+            style={styles.secondaryBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Reset timer"
+          >
             <Text style={styles.secondaryBtnText}>↺</Text>
           </TouchableOpacity>
 
@@ -197,6 +213,9 @@ export default function TimerScreen() {
           <TouchableOpacity
             onPress={handleToggle}
             style={[styles.primaryBtn, { backgroundColor: modeColor }]}
+            accessibilityRole="button"
+            accessibilityLabel={isRunning ? "Pause timer" : "Start timer"}
+            accessibilityState={{ selected: isRunning }}
           >
             <Text style={styles.primaryBtnText}>
               {isRunning ? "⏸ Pause" : "▶ Mulai"}
@@ -215,6 +234,8 @@ export default function TimerScreen() {
               )
             }
             style={styles.secondaryBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Skip to next timer mode"
           >
             <Text style={styles.secondaryBtnText}>⏭</Text>
           </TouchableOpacity>
