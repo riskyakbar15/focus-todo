@@ -18,6 +18,42 @@ interface TaskStore {
 const STORAGE_KEY = "focus_todo_tasks";
 const ACTIVE_TASK_STORAGE_KEY = "focus_todo_active_task";
 
+const isTask = (value: unknown): value is Task => {
+  if (!value || typeof value !== "object") return false;
+
+  const task = value as Partial<Task>;
+  return (
+    typeof task.id === "string" &&
+    task.id.length > 0 &&
+    typeof task.title === "string" &&
+    task.title.length > 0 &&
+    typeof task.completed === "boolean" &&
+    typeof task.sessions === "number" &&
+    Number.isFinite(task.sessions) &&
+    typeof task.createdAt === "number" &&
+    Number.isFinite(task.createdAt)
+  );
+};
+
+const parseTasks = (raw: string | null): Task[] => {
+  if (!raw) return [];
+
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter(isTask) : [];
+  } catch {
+    return [];
+  }
+};
+
+const createTaskId = () => {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+};
+
 const save = async (tasks: Task[]) => {
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
 };
@@ -31,14 +67,14 @@ export const useTaskStore = create<TaskStore>()((set, get) => ({
       AsyncStorage.getItem(STORAGE_KEY),
       AsyncStorage.getItem(ACTIVE_TASK_STORAGE_KEY),
     ]);
-    const tasks = raw ? JSON.parse(raw) : [];
+    const tasks = parseTasks(raw);
     const hasActiveTask = tasks.some((t: Task) => t.id === activeTaskId);
     set({ tasks, activeTaskId: hasActiveTask ? activeTaskId : null });
   },
 
   addTask: async (title) => {
     const task: Task = {
-      id: Date.now().toString(),
+      id: createTaskId(),
       title,
       completed: false,
       sessions: 0,
