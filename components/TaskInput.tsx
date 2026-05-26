@@ -45,6 +45,8 @@ export default function TaskInput({ onAdd }: TaskInputProps) {
         returnKeyType="done"
         onSubmitEditing={handleAdd}
         maxLength={100}
+        accessibilityLabel="New task title"
+        accessibilityHint="Enter a task title, then submit to add it to the list."
       />
       <TouchableOpacity
         style={[
@@ -56,6 +58,10 @@ export default function TaskInput({ onAdd }: TaskInputProps) {
         onPress={handleAdd}
         disabled={isDisabled}
         activeOpacity={0.8}
+        accessibilityRole="button"
+        accessibilityLabel="Add task"
+        accessibilityHint="Adds the typed task to your list."
+        accessibilityState={{ disabled: isDisabled }}
       >
         <Text style={styles.addBtnText}>+</Text>
       </TouchableOpacity>
