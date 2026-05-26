@@ -47,6 +47,9 @@ export default function TaskItem({
             onPress={() => onMoveUp?.(task.id)}
             disabled={isFirst}
             style={[styles.orderBtn, { opacity: isFirst ? 0.2 : 1 }]}
+            accessibilityRole="button"
+            accessibilityLabel={`Move ${task.title} up`}
+            accessibilityState={{ disabled: isFirst }}
           >
             <Text
               style={[styles.orderBtnText, { color: colors.textSecondary }]}
@@ -58,6 +61,9 @@ export default function TaskItem({
             onPress={() => onMoveDown?.(task.id)}
             disabled={isLast}
             style={[styles.orderBtn, { opacity: isLast ? 0.2 : 1 }]}
+            accessibilityRole="button"
+            accessibilityLabel={`Move ${task.title} down`}
+            accessibilityState={{ disabled: isLast }}
           >
             <Text
               style={[styles.orderBtnText, { color: colors.textSecondary }]}
@@ -73,6 +79,10 @@ export default function TaskItem({
         style={styles.left}
         onPress={() => onToggle(task.id)}
         activeOpacity={0.7}
+        accessibilityRole="checkbox"
+        accessibilityLabel={task.title}
+        accessibilityHint="Marks this task as complete or incomplete."
+        accessibilityState={{ checked: task.completed }}
       >
         <View
           style={[
@@ -119,6 +129,11 @@ export default function TaskItem({
               },
             ]}
             onPress={() => onStartTimer(task.id)}
+            accessibilityRole="button"
+            accessibilityLabel={
+              isActive ? `${task.title} is the active timer task` : `Start timer for ${task.title}`
+            }
+            accessibilityState={{ selected: isActive }}
           >
             <Text
               style={[
@@ -133,6 +148,8 @@ export default function TaskItem({
         <TouchableOpacity
           style={[styles.deleteBtn, { backgroundColor: colors.dangerSoft }]}
           onPress={() => onDelete(task.id)}
+          accessibilityRole="button"
+          accessibilityLabel={`Delete ${task.title}`}
         >
           <Text style={[styles.deleteBtnText, { color: colors.danger }]}>
             ✕
