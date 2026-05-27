@@ -17,6 +17,22 @@ const COLORS = {
     danger: "#EF4444",
     dangerSoft: "#FEF2F2",
     checkTrack: "#F0EEF8",
+    onPrimary: "#ffffff",
+    timerTrack: "#F0EEF8",
+    timerModes: {
+      focus: {
+        foreground: "#534AB7",
+        background: "#EEEDFE",
+      },
+      short_break: {
+        foreground: "#1D9E75",
+        background: "#E1F5EE",
+      },
+      long_break: {
+        foreground: "#185FA5",
+        background: "#E6F1FB",
+      },
+    },
   },
   dark: {
     background: "#0F0E17",
@@ -33,6 +49,22 @@ const COLORS = {
     danger: "#F87171",
     dangerSoft: "#3B1A1A",
     checkTrack: "#2A2640",
+    onPrimary: "#ffffff",
+    timerTrack: "#28243B",
+    timerModes: {
+      focus: {
+        foreground: "#9D94F2",
+        background: "#28244A",
+      },
+      short_break: {
+        foreground: "#62D6A5",
+        background: "#15382F",
+      },
+      long_break: {
+        foreground: "#76B7F3",
+        background: "#17314D",
+      },
+    },
   },
 };
 

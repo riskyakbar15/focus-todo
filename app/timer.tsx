@@ -12,6 +12,7 @@ import { useTaskStore } from "../store/taskStore";
 import { TIMER_LABELS } from "../constants/timer";
 import TimerCircle, { SIZE } from "../components/TimerCircle";
 import { useNotification } from "../hooks/useNotification";
+import { useTheme } from "../hooks/useTheme";
 
 // ─── Format detik → MM:SS ──────────────────────────────────────────────────
 function formatTime(seconds: number): string {
@@ -25,6 +26,7 @@ function formatTime(seconds: number): string {
 // ─── Layar utama Timer ─────────────────────────────────────────────────────
 export default function TimerScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
   const { activeTaskId, tasks, addSession } = useTaskStore();
   const activeTask = tasks.find((t) => t.id === activeTaskId);
   const scheduledNotificationRef = useRef<string | null>(null);
@@ -105,23 +107,10 @@ export default function TimerScreen() {
   };
   const totalSeconds = DURATIONS[mode];
 
-  // Warna tema berdasarkan mode
-  const modeColor =
-    mode === "focus"
-      ? "#534AB7"
-      : mode === "short_break"
-        ? "#1D9E75"
-        : "#185FA5";
-
-  const modeBg =
-    mode === "focus"
-      ? "#EEEDFE"
-      : mode === "short_break"
-        ? "#E1F5EE"
-        : "#E6F1FB";
+  const modeTheme = colors.timerModes[mode];
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
@@ -131,16 +120,22 @@ export default function TimerScreen() {
             accessibilityRole="button"
             accessibilityLabel="Go back to tasks"
           >
-            <Text style={styles.backText}>← Kembali</Text>
+            <Text style={[styles.backText, { color: colors.primary }]}>
+              ← Kembali
+            </Text>
           </TouchableOpacity>
-          <Text style={styles.sessionCount}>Sesi #{sessionCount + 1}</Text>
+          <Text style={[styles.sessionCount, { color: colors.textSecondary }]}>
+            Sesi #{sessionCount + 1}
+          </Text>
         </View>
 
         {/* Task aktif */}
         {activeTask && (
-          <View style={[styles.taskBadge, { backgroundColor: modeBg }]}>
+          <View
+            style={[styles.taskBadge, { backgroundColor: modeTheme.background }]}
+          >
             <Text
-              style={[styles.taskBadgeText, { color: modeColor }]}
+              style={[styles.taskBadgeText, { color: modeTheme.foreground }]}
               numberOfLines={1}
             >
               {activeTask.title}
@@ -149,7 +144,12 @@ export default function TimerScreen() {
         )}
 
         {/* Mode selector */}
-        <View style={styles.modeRow}>
+        <View
+          style={[
+            styles.modeRow,
+            { backgroundColor: colors.backgroundSoft },
+          ]}
+        >
           {(["focus", "short_break", "long_break"] as const).map((m) => (
             <TouchableOpacity
               key={m}
@@ -165,11 +165,17 @@ export default function TimerScreen() {
               accessibilityState={{ selected: mode === m }}
               style={[
                 styles.modeBtn,
-                mode === m && { backgroundColor: modeColor },
+                mode === m && {
+                  backgroundColor: colors.timerModes[m].foreground,
+                },
               ]}
             >
               <Text
-                style={[styles.modeBtnText, mode === m && { color: "#fff" }]}
+                style={[
+                  styles.modeBtnText,
+                  { color: colors.textSecondary },
+                  mode === m && { color: colors.onPrimary },
+                ]}
               >
                 {m === "focus"
                   ? "Fokus"
@@ -187,13 +193,16 @@ export default function TimerScreen() {
             secondsLeft={secondsLeft}
             totalSeconds={totalSeconds}
             mode={mode}
+            colors={colors}
           />
           {/* Teks di tengah lingkaran */}
           <View style={styles.circleCenter}>
-            <Text style={[styles.timeText, { color: modeColor }]}>
+            <Text style={[styles.timeText, { color: modeTheme.foreground }]}>
               {formatTime(secondsLeft)}
             </Text>
-            <Text style={styles.modeLabel}>{TIMER_LABELS[mode]}</Text>
+            <Text style={[styles.modeLabel, { color: colors.textSecondary }]}>
+              {TIMER_LABELS[mode]}
+            </Text>
           </View>
         </View>
 
@@ -202,22 +211,27 @@ export default function TimerScreen() {
           {/* Reset */}
           <TouchableOpacity
             onPress={handleReset}
-            style={styles.secondaryBtn}
+            style={[styles.secondaryBtn, { backgroundColor: colors.backgroundSoft }]}
             accessibilityRole="button"
             accessibilityLabel="Reset timer"
           >
-            <Text style={styles.secondaryBtnText}>↺</Text>
+            <Text style={[styles.secondaryBtnText, { color: colors.text }]}>
+              ↺
+            </Text>
           </TouchableOpacity>
 
           {/* Start / Pause */}
           <TouchableOpacity
             onPress={handleToggle}
-            style={[styles.primaryBtn, { backgroundColor: modeColor }]}
+            style={[
+              styles.primaryBtn,
+              { backgroundColor: modeTheme.foreground },
+            ]}
             accessibilityRole="button"
             accessibilityLabel={isRunning ? "Pause timer" : "Start timer"}
             accessibilityState={{ selected: isRunning }}
           >
-            <Text style={styles.primaryBtnText}>
+            <Text style={[styles.primaryBtnText, { color: colors.onPrimary }]}>
               {isRunning ? "⏸ Pause" : "▶ Mulai"}
             </Text>
           </TouchableOpacity>
@@ -233,17 +247,19 @@ export default function TimerScreen() {
                   : "focus",
               )
             }
-            style={styles.secondaryBtn}
+            style={[styles.secondaryBtn, { backgroundColor: colors.backgroundSoft }]}
             accessibilityRole="button"
             accessibilityLabel="Skip to next timer mode"
           >
-            <Text style={styles.secondaryBtnText}>⏭</Text>
+            <Text style={[styles.secondaryBtnText, { color: colors.text }]}>
+              ⏭
+            </Text>
           </TouchableOpacity>
         </View>
 
         {/* Info sesi task */}
         {activeTask && (
-          <Text style={styles.sessionInfo}>
+          <Text style={[styles.sessionInfo, { color: colors.textMuted }]}>
             {activeTask.title} · {activeTask.sessions} sesi selesai
           </Text>
         )}
@@ -256,7 +272,6 @@ export default function TimerScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: "#fff",
   },
   container: {
     flex: 1,
@@ -278,11 +293,9 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 14,
-    color: "#534AB7",
   },
   sessionCount: {
     fontSize: 13,
-    color: "#888",
   },
 
   // Task badge
@@ -303,7 +316,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
     marginBottom: 32,
-    backgroundColor: "#F5F5F5",
     borderRadius: 12,
     padding: 4,
   },
@@ -314,7 +326,6 @@ const styles = StyleSheet.create({
   },
   modeBtnText: {
     fontSize: 12,
-    color: "#888",
     fontWeight: "500",
   },
 
@@ -337,7 +348,6 @@ const styles = StyleSheet.create({
   },
   modeLabel: {
     fontSize: 13,
-    color: "#aaa",
     marginTop: 4,
     letterSpacing: 1,
   },
@@ -357,7 +367,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   primaryBtnText: {
-    color: "#fff",
     fontSize: 16,
     fontWeight: "500",
   },
@@ -365,7 +374,6 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: "#F5F5F5",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -376,7 +384,6 @@ const styles = StyleSheet.create({
   // Info sesi
   sessionInfo: {
     fontSize: 12,
-    color: "#bbb",
     textAlign: "center",
   },
 });
