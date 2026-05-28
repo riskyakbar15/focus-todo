@@ -9,7 +9,8 @@ import {
 import { useRouter } from "expo-router";
 import { usePomodoro } from "../hooks/usePomodoro";
 import { useTaskStore } from "../store/taskStore";
-import { TIMER_LABELS } from "../constants/timer";
+import { useStatsStore } from "../store/statsStore";
+import { TIMER_DURATIONS, TIMER_LABELS } from "../constants/timer";
 import TimerCircle, { SIZE } from "../components/TimerCircle";
 import { useNotification } from "../hooks/useNotification";
 import { useTheme } from "../hooks/useTheme";
@@ -28,6 +29,7 @@ export default function TimerScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const { activeTaskId, tasks, addSession } = useTaskStore();
+  const { addFocusSession } = useStatsStore();
   const activeTask = tasks.find((t) => t.id === activeTaskId);
   const scheduledNotificationRef = useRef<string | null>(null);
   const isRunningRef = useRef(false);
@@ -50,6 +52,10 @@ export default function TimerScreen() {
     // Tambah session count ke task aktif jika mode fokus
     if (completedMode === "focus" && activeTaskId) {
       addSession(activeTaskId);
+      addFocusSession({
+        durationSeconds: TIMER_DURATIONS.focus,
+        taskId: activeTaskId,
+      });
     }
   });
 
@@ -100,12 +106,7 @@ export default function TimerScreen() {
   };
 
   // Total detik sesuai mode saat ini
-  const DURATIONS: Record<string, number> = {
-    focus: 25 * 60,
-    short_break: 5 * 60,
-    long_break: 15 * 60,
-  };
-  const totalSeconds = DURATIONS[mode];
+  const totalSeconds = TIMER_DURATIONS[mode];
 
   const modeTheme = colors.timerModes[mode];
 
