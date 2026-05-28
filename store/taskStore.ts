@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Task } from "../types";
+import { Task, TaskCategory } from "../types";
 
 interface TaskStore {
   tasks: Task[];
@@ -11,12 +11,27 @@ interface TaskStore {
   deleteTask: (id: string) => Promise<void>;
   addSession: (id: string) => Promise<void>;
   setActiveTask: (id: string | null) => Promise<void>;
+  updateCategory: (id: string, category: TaskCategory) => Promise<void>;
+  setDeadline: (
+    id: string,
+    deadline: number | undefined,
+    deadlineReminderId?: string,
+  ) => Promise<void>;
   moveUp: (id: string) => Promise<void>;
   moveDown: (id: string) => Promise<void>;
 }
 
 const STORAGE_KEY = "focus_todo_tasks";
 const ACTIVE_TASK_STORAGE_KEY = "focus_todo_active_task";
+
+const isTaskCategory = (value: unknown): value is TaskCategory => {
+  return (
+    value === "work" ||
+    value === "study" ||
+    value === "personal" ||
+    value === "none"
+  );
+};
 
 const isTask = (value: unknown): value is Task => {
   if (!value || typeof value !== "object") return false;
@@ -31,16 +46,26 @@ const isTask = (value: unknown): value is Task => {
     typeof task.sessions === "number" &&
     Number.isFinite(task.sessions) &&
     typeof task.createdAt === "number" &&
-    Number.isFinite(task.createdAt)
+    Number.isFinite(task.createdAt) &&
+    (task.category === undefined || isTaskCategory(task.category)) &&
+    (task.deadline === undefined ||
+      (typeof task.deadline === "number" && Number.isFinite(task.deadline))) &&
+    (task.deadlineReminderId === undefined ||
+      typeof task.deadlineReminderId === "string")
   );
 };
+
+const normalizeTask = (task: Task): Task => ({
+  ...task,
+  category: isTaskCategory(task.category) ? task.category : "none",
+});
 
 const parseTasks = (raw: string | null): Task[] => {
   if (!raw) return [];
 
   try {
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter(isTask) : [];
+    return Array.isArray(parsed) ? parsed.filter(isTask).map(normalizeTask) : [];
   } catch {
     return [];
   }
@@ -79,6 +104,7 @@ export const useTaskStore = create<TaskStore>()((set, get) => ({
       completed: false,
       sessions: 0,
       createdAt: Date.now(),
+      category: "none",
     };
     const tasks = [...get().tasks, task];
     set({ tasks });
@@ -116,6 +142,29 @@ export const useTaskStore = create<TaskStore>()((set, get) => ({
     } else {
       await AsyncStorage.removeItem(ACTIVE_TASK_STORAGE_KEY);
     }
+  },
+
+  updateCategory: async (id, category) => {
+    const tasks = get().tasks.map((t) =>
+      t.id === id ? { ...t, category } : t,
+    );
+    set({ tasks });
+    await save(tasks);
+  },
+
+  setDeadline: async (id, deadline, deadlineReminderId) => {
+    const tasks = get().tasks.map((t) => {
+      if (t.id !== id) return t;
+
+      const nextTask = { ...t, deadline, deadlineReminderId };
+      if (deadline === undefined) {
+        delete nextTask.deadline;
+        delete nextTask.deadlineReminderId;
+      }
+      return nextTask;
+    });
+    set({ tasks });
+    await save(tasks);
   },
 
   // ─── Pindah task ke atas (hanya di antara task pending) ───────────────
