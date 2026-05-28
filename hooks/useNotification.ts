@@ -145,6 +145,31 @@ export function useNotification() {
     [requestNotificationPermission],
   );
 
+  const scheduleDeadlineReminder = useCallback(
+    async (taskTitle: string, deadline: number) => {
+      const remindAt = deadline - 24 * 60 * 60 * 1000;
+      if (remindAt <= Date.now()) return null;
+
+      const canNotify = await requestNotificationPermission();
+      if (!canNotify) return null;
+
+      return Notifications.scheduleNotificationAsync({
+        content: {
+          title: "⏳ Deadline besok",
+          body: `${taskTitle} jatuh tempo besok.`,
+          sound: true,
+          data: { screen: "tasks", deadline },
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          date: new Date(remindAt),
+          channelId: TIMER_CHANNEL_ID,
+        },
+      });
+    },
+    [requestNotificationPermission],
+  );
+
   // Batalkan satu notifikasi terjadwal berdasarkan identifier.
   const cancelNotification = useCallback(async (identifier: string | null) => {
     if (!identifier) return;
@@ -161,6 +186,7 @@ export function useNotification() {
     sendSessionNotification,
     scheduleReminder,
     scheduleSessionEndNotification,
+    scheduleDeadlineReminder,
     cancelNotification,
     cancelAllNotifications,
   };
