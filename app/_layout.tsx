@@ -4,7 +4,10 @@ import { StatusBar } from "expo-status-bar";
 export default function RootLayout() {
   return (
     <>
-      <Stack screenOptions={{ headerShown: false }} />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="timer" />
+      </Stack>
       <StatusBar style="auto" />
     </>
   );
