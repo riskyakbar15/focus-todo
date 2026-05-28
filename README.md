@@ -11,6 +11,10 @@ Focus Todo adalah aplikasi task manager sederhana berbasis teknik Pomodoro. Apli
   - Istirahat singkat
   - Istirahat panjang
 - Hitungan sesi selesai per task.
+- Kategori task: kerja, belajar, pribadi, dan tanpa kategori.
+- Filter task berdasarkan kategori.
+- Deadline task dengan reminder H-1.
+- Statistik harian berisi sesi hari ini, menit fokus, streak, dan grafik 7 hari.
 - Reorder task pending ke atas atau bawah.
 - Penyimpanan lokal menggunakan AsyncStorage.
 - State timer persisten saat aplikasi dibuka ulang.
@@ -28,6 +32,7 @@ Focus Todo adalah aplikasi task manager sederhana berbasis teknik Pomodoro. Apli
 - Zustand
 - AsyncStorage
 - Expo Notifications
+- React Native Chart Kit
 - React Native SVG
 
 ## Struktur Folder
@@ -35,8 +40,8 @@ Focus Todo adalah aplikasi task manager sederhana berbasis teknik Pomodoro. Apli
 ```text
 focus-todo/
 ├── app/
+│   ├── (tabs)/           # Tab utama: task, statistik, pengaturan
 │   ├── _layout.tsx       # Root layout Expo Router
-│   ├── index.tsx         # Halaman daftar task
 │   └── timer.tsx         # Halaman timer Pomodoro
 ├── assets/               # Icon, splash, favicon
 ├── components/           # Komponen UI reusable
@@ -122,14 +127,14 @@ Notifikasi menggunakan `expo-notifications` dan channel Android `focus-todo-time
 
 ## Penyimpanan Data
 
-Data task, task aktif, dan state timer disimpan secara lokal menggunakan AsyncStorage. Timer akan mencoba memulihkan mode, sisa waktu, status running, dan jumlah sesi saat aplikasi dibuka kembali.
+Data task, task aktif, deadline, statistik fokus, dan state timer disimpan secara lokal menggunakan AsyncStorage. Timer akan mencoba memulihkan mode, sisa waktu, status running, dan jumlah sesi saat aplikasi dibuka kembali.
 
 ## Roadmap
 
 - Menambahkan test untuk Pomodoro hook dan task store.
 - Menambahkan edit task dan konfirmasi delete.
 - Menambahkan pengaturan durasi timer.
-- Menambahkan statistik fokus harian/mingguan.
+- Menambahkan ekspor statistik fokus.
 - Meningkatkan validasi dan recovery data lokal.
 
 ---
