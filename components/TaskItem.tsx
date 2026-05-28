@@ -1,6 +1,7 @@
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Task } from "../types";
 import { useTheme } from "../hooks/useTheme";
+import { getCategoryLabel } from "../constants/task";
 
 interface TaskItemProps {
   task: Task;
@@ -9,9 +10,20 @@ interface TaskItemProps {
   onStartTimer: (id: string) => void;
   onMoveUp?: (id: string) => void;
   onMoveDown?: (id: string) => void;
+  onCycleCategory?: (task: Task) => void;
+  onCycleDeadline?: (task: Task) => void;
   isActive?: boolean;
   isFirst?: boolean;
   isLast?: boolean;
+}
+
+function formatDeadline(deadline?: number) {
+  if (!deadline) return "Tanpa deadline";
+
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "numeric",
+    month: "short",
+  }).format(new Date(deadline));
 }
 
 export default function TaskItem({
@@ -21,6 +33,8 @@ export default function TaskItem({
   onStartTimer,
   onMoveUp,
   onMoveDown,
+  onCycleCategory,
+  onCycleDeadline,
   isActive = false,
   isFirst = false,
   isLast = false,
@@ -115,11 +129,61 @@ export default function TaskItem({
               🍅 {task.sessions} sesi selesai
             </Text>
           )}
+          <View style={styles.metaRow}>
+            <Text
+              style={[
+                styles.metaPill,
+                {
+                  color: colors.primary,
+                  backgroundColor: colors.primarySoft,
+                },
+              ]}
+            >
+              {getCategoryLabel(task.category)}
+            </Text>
+            {task.deadline && (
+              <Text
+                style={[
+                  styles.metaPill,
+                  {
+                    color: colors.danger,
+                    backgroundColor: colors.dangerSoft,
+                  },
+                ]}
+              >
+                {formatDeadline(task.deadline)}
+              </Text>
+            )}
+          </View>
         </View>
       </TouchableOpacity>
 
       {/* Tombol aksi */}
       <View style={styles.actions}>
+        {!task.completed && (
+          <TouchableOpacity
+            style={[styles.metaBtn, { backgroundColor: colors.backgroundSoft }]}
+            onPress={() => onCycleCategory?.(task)}
+            accessibilityRole="button"
+            accessibilityLabel={`Change category for ${task.title}`}
+          >
+            <Text style={[styles.metaBtnText, { color: colors.textSecondary }]}>
+              Tag
+            </Text>
+          </TouchableOpacity>
+        )}
+        {!task.completed && (
+          <TouchableOpacity
+            style={[styles.metaBtn, { backgroundColor: colors.backgroundSoft }]}
+            onPress={() => onCycleDeadline?.(task)}
+            accessibilityRole="button"
+            accessibilityLabel={`Change deadline for ${task.title}`}
+          >
+            <Text style={[styles.metaBtnText, { color: colors.textSecondary }]}>
+              {task.deadline ? "Clear" : "H+7"}
+            </Text>
+          </TouchableOpacity>
+        )}
         {!task.completed && (
           <TouchableOpacity
             style={[
@@ -210,10 +274,33 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 3,
   },
+  metaRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: 6,
+  },
+  metaPill: {
+    borderRadius: 999,
+    fontSize: 10,
+    fontWeight: "700",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    overflow: "hidden",
+  },
   actions: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+  },
+  metaBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  metaBtnText: {
+    fontSize: 11,
+    fontWeight: "700",
   },
   timerBtn: {
     paddingHorizontal: 12,
