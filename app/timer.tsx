@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import { usePomodoro } from "../hooks/usePomodoro";
 import { useTaskStore } from "../store/taskStore";
 import { useStatsStore } from "../store/statsStore";
 import { TIMER_DURATIONS, TIMER_LABELS } from "../constants/timer";
+import { loadTimerDurations, TimerDurations } from "../hooks/useTimerSettings";
 import TimerCircle, { SIZE } from "../components/TimerCircle";
 import { useNotification } from "../hooks/useNotification";
 import { useTheme } from "../hooks/useTheme";
@@ -53,11 +54,20 @@ export default function TimerScreen() {
     if (completedMode === "focus" && activeTaskId) {
       addSession(activeTaskId);
       addFocusSession({
-        durationSeconds: TIMER_DURATIONS.focus,
+        durationSeconds: configuredDurations?.focus ?? TIMER_DURATIONS.focus,
         taskId: activeTaskId,
       });
     }
   });
+
+  const [configuredDurations, setConfiguredDurations] =
+    useState<TimerDurations | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      setConfiguredDurations(await loadTimerDurations());
+    })();
+  }, []);
 
   useEffect(() => {
     isRunningRef.current = isRunning;
@@ -106,7 +116,9 @@ export default function TimerScreen() {
   };
 
   // Total detik sesuai mode saat ini
-  const totalSeconds = TIMER_DURATIONS[mode];
+  const totalSeconds = configuredDurations
+    ? configuredDurations[mode]
+    : TIMER_DURATIONS[mode];
 
   const modeTheme = colors.timerModes[mode];
 
@@ -133,7 +145,10 @@ export default function TimerScreen() {
         {/* Task aktif */}
         {activeTask && (
           <View
-            style={[styles.taskBadge, { backgroundColor: modeTheme.background }]}
+            style={[
+              styles.taskBadge,
+              { backgroundColor: modeTheme.background },
+            ]}
           >
             <Text
               style={[styles.taskBadgeText, { color: modeTheme.foreground }]}
@@ -146,10 +161,7 @@ export default function TimerScreen() {
 
         {/* Mode selector */}
         <View
-          style={[
-            styles.modeRow,
-            { backgroundColor: colors.backgroundSoft },
-          ]}
+          style={[styles.modeRow, { backgroundColor: colors.backgroundSoft }]}
         >
           {(["focus", "short_break", "long_break"] as const).map((m) => (
             <TouchableOpacity
@@ -212,7 +224,10 @@ export default function TimerScreen() {
           {/* Reset */}
           <TouchableOpacity
             onPress={handleReset}
-            style={[styles.secondaryBtn, { backgroundColor: colors.backgroundSoft }]}
+            style={[
+              styles.secondaryBtn,
+              { backgroundColor: colors.backgroundSoft },
+            ]}
             accessibilityRole="button"
             accessibilityLabel="Reset timer"
           >
@@ -248,7 +263,10 @@ export default function TimerScreen() {
                   : "focus",
               )
             }
-            style={[styles.secondaryBtn, { backgroundColor: colors.backgroundSoft }]}
+            style={[
+              styles.secondaryBtn,
+              { backgroundColor: colors.backgroundSoft },
+            ]}
             accessibilityRole="button"
             accessibilityLabel="Skip to next timer mode"
           >
