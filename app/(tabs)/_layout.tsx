@@ -1,23 +1,30 @@
 import { Tabs } from "expo-router";
-import { Text } from "react-native";
 import { useTheme } from "../../hooks/useTheme";
+import { Ionicons } from "@expo/vector-icons";
 
 type TabIconProps = {
   focused: boolean;
-  icon: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  color: string;
 };
 
-function TabIcon({ focused, icon }: TabIconProps) {
+function TabIcon({ focused, icon, color }: TabIconProps) {
   return (
-    <Text style={{ fontSize: focused ? 22 : 20, opacity: focused ? 1 : 0.65 }}>
-      {icon}
-    </Text>
+    <Ionicons
+      name={icon}
+      size={focused ? 23 : 21}
+      color={color}
+      style={{ opacity: focused ? 1 : 0.7 }}
+    />
   );
 }
 
 export default function TabsLayout() {
-  const { colors } = useTheme();
+  return <InnerTabs />;
+}
 
+function InnerTabs() {
+  const { colors } = useTheme();
   return (
     <Tabs
       screenOptions={{
@@ -38,21 +45,39 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: "Task",
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} icon="✓" />,
+          tabBarIcon: ({ focused, color }) => (
+            <TabIcon
+              focused={focused}
+              color={color}
+              icon={focused ? "checkbox" : "checkbox-outline"}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="stats"
         options={{
           title: "Statistik",
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} icon="▥" />,
+          tabBarIcon: ({ focused, color }) => (
+            <TabIcon
+              focused={focused}
+              color={color}
+              icon={focused ? "bar-chart" : "bar-chart-outline"}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
           title: "Pengaturan",
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} icon="⚙" />,
+          tabBarIcon: ({ focused, color }) => (
+            <TabIcon
+              focused={focused}
+              color={color}
+              icon={focused ? "settings" : "settings-outline"}
+            />
+          ),
         }}
       />
     </Tabs>
