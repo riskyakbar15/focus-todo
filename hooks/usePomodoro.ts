@@ -5,6 +5,8 @@ import {
   TIMER_DURATIONS,
   SESSIONS_BEFORE_LONG_BREAK,
 } from "../constants/timer";
+import { activateKeepAwake, deactivateKeepAwake } from "expo-keep-awake";
+import { useSound } from "./useSound";
 
 const STORAGE_KEY = "focus_todo_timer";
 
@@ -60,6 +62,7 @@ export function usePomodoro(onSessionComplete?: (mode: TimerMode) => void) {
   const [hasLoaded, setHasLoaded] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const onSessionCompleteRef = useRef(onSessionComplete);
+  const { playEndSound } = useSound();
 
   useEffect(() => {
     onSessionCompleteRef.current = onSessionComplete;
@@ -74,6 +77,12 @@ export function usePomodoro(onSessionComplete?: (mode: TimerMode) => void) {
   const handleComplete = useCallback(() => {
     setIsRunning(false);
     onSessionCompleteRef.current?.(mode);
+    // play end sound (best-effort)
+    try {
+      void playEndSound();
+    } catch {
+      // ignore
+    }
 
     if (mode === "focus") {
       const next = sessionCount + 1;
@@ -84,6 +93,30 @@ export function usePomodoro(onSessionComplete?: (mode: TimerMode) => void) {
       switchMode("focus");
     }
   }, [mode, sessionCount, switchMode]);
+
+  // Keep screen awake when timer is running
+  useEffect(() => {
+    if (isRunning) {
+      try {
+        activateKeepAwake();
+      } catch {
+        // ignore if module not available
+      }
+    } else {
+      try {
+        deactivateKeepAwake();
+      } catch {
+        // ignore
+      }
+    }
+    return () => {
+      try {
+        deactivateKeepAwake();
+      } catch {
+        // ignore
+      }
+    };
+  }, [isRunning]);
 
   useEffect(() => {
     let isMounted = true;
