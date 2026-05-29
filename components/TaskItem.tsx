@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { Task } from "../types";
 import { useTheme } from "../hooks/useTheme";
 import { getCategoryLabel } from "../constants/task";
@@ -211,13 +211,20 @@ export default function TaskItem({
         )}
         <TouchableOpacity
           style={[styles.deleteBtn, { backgroundColor: colors.dangerSoft }]}
-          onPress={() => onDelete(task.id)}
+          onPress={() => {
+            Alert.alert(
+              "Hapus task",
+              `Apakah Anda yakin ingin menghapus "${task.title}"?`,
+              [
+                { text: "Batal", style: "cancel" },
+                { text: "Hapus", style: "destructive", onPress: () => onDelete(task.id) },
+              ],
+            );
+          }}
           accessibilityRole="button"
           accessibilityLabel={`Delete ${task.title}`}
         >
-          <Text style={[styles.deleteBtnText, { color: colors.danger }]}>
-            ✕
-          </Text>
+          <Text style={[styles.deleteBtnText, { color: colors.danger }]}>✕</Text>
         </TouchableOpacity>
       </View>
     </View>
