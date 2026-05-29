@@ -5,6 +5,9 @@ import {
   TIMER_DURATIONS,
   SESSIONS_BEFORE_LONG_BREAK,
 } from "../constants/timer";
+import { activateKeepAwake, deactivateKeepAwake } from "expo-keep-awake";
+import { useSound } from "./useSound";
+import { loadTimerDurations, TimerDurations } from "./useTimerSettings";
 
 const STORAGE_KEY = "focus_todo_timer";
 
@@ -59,7 +62,9 @@ export function usePomodoro(onSessionComplete?: (mode: TimerMode) => void) {
   const [sessionCount, setSessionCount] = useState(0);
   const [hasLoaded, setHasLoaded] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const durationsRef = useRef<TimerDurations | null>(null);
   const onSessionCompleteRef = useRef(onSessionComplete);
+  const { playEndSound } = useSound();
 
   useEffect(() => {
     onSessionCompleteRef.current = onSessionComplete;
@@ -67,13 +72,19 @@ export function usePomodoro(onSessionComplete?: (mode: TimerMode) => void) {
 
   const switchMode = useCallback((newMode: TimerMode) => {
     setMode(newMode);
-    setSecondsLeft(TIMER_DURATIONS[newMode]);
+    setSecondsLeft(durationsRef.current?.[newMode] ?? TIMER_DURATIONS[newMode]);
     setIsRunning(false);
   }, []);
 
   const handleComplete = useCallback(() => {
     setIsRunning(false);
     onSessionCompleteRef.current?.(mode);
+    // play end sound (best-effort)
+    try {
+      void playEndSound();
+    } catch {
+      // ignore
+    }
 
     if (mode === "focus") {
       const next = sessionCount + 1;
@@ -85,10 +96,40 @@ export function usePomodoro(onSessionComplete?: (mode: TimerMode) => void) {
     }
   }, [mode, sessionCount, switchMode]);
 
+  // Keep screen awake when timer is running
+  useEffect(() => {
+    if (isRunning) {
+      try {
+        activateKeepAwake();
+      } catch {
+        // ignore if module not available
+      }
+    } else {
+      try {
+        deactivateKeepAwake();
+      } catch {
+        // ignore
+      }
+    }
+    return () => {
+      try {
+        deactivateKeepAwake();
+      } catch {
+        // ignore
+      }
+    };
+  }, [isRunning]);
+
   useEffect(() => {
     let isMounted = true;
 
     const loadTimer = async () => {
+      // load configured durations
+      try {
+        durationsRef.current = await loadTimerDurations();
+      } catch {
+        durationsRef.current = null;
+      }
       const raw = await AsyncStorage.getItem(STORAGE_KEY);
       if (!isMounted) return;
 
@@ -101,7 +142,8 @@ export function usePomodoro(onSessionComplete?: (mode: TimerMode) => void) {
       const elapsedSeconds = stored.isRunning
         ? Math.max(0, Math.floor((Date.now() - stored.updatedAt) / 1000))
         : 0;
-      const completedWhileAway = stored.isRunning && elapsedSeconds >= stored.secondsLeft;
+      const completedWhileAway =
+        stored.isRunning && elapsedSeconds >= stored.secondsLeft;
       const nextSessionCount =
         completedWhileAway && stored.mode === "focus"
           ? stored.sessionCount + 1
@@ -110,7 +152,7 @@ export function usePomodoro(onSessionComplete?: (mode: TimerMode) => void) {
         ? getNextMode(stored.mode, nextSessionCount)
         : stored.mode;
       const nextSecondsLeft = completedWhileAway
-        ? TIMER_DURATIONS[nextMode]
+        ? (durationsRef.current?.[nextMode] ?? TIMER_DURATIONS[nextMode])
         : Math.max(0, stored.secondsLeft - elapsedSeconds);
 
       setMode(nextMode);

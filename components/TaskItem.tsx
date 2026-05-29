@@ -1,4 +1,5 @@
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { Task } from "../types";
 import { useTheme } from "../hooks/useTheme";
 import { getCategoryLabel } from "../constants/task";
@@ -65,11 +66,11 @@ export default function TaskItem({
             accessibilityLabel={`Move ${task.title} up`}
             accessibilityState={{ disabled: isFirst }}
           >
-            <Text
-              style={[styles.orderBtnText, { color: colors.textSecondary }]}
-            >
-              ▲
-            </Text>
+            <Ionicons
+              name="chevron-up"
+              size={14}
+              color={colors.textSecondary}
+            />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => onMoveDown?.(task.id)}
@@ -79,11 +80,11 @@ export default function TaskItem({
             accessibilityLabel={`Move ${task.title} down`}
             accessibilityState={{ disabled: isLast }}
           >
-            <Text
-              style={[styles.orderBtnText, { color: colors.textSecondary }]}
-            >
-              ▼
-            </Text>
+            <Ionicons
+              name="chevron-down"
+              size={14}
+              color={colors.textSecondary}
+            />
           </TouchableOpacity>
         </View>
       )}
@@ -108,7 +109,9 @@ export default function TaskItem({
             },
           ]}
         >
-          {task.completed && <Text style={styles.checkmark}>✓</Text>}
+          {task.completed && (
+            <Ionicons name="checkmark" size={14} color="#fff" />
+          )}
         </View>
         <View style={styles.textGroup}>
           <Text
@@ -125,9 +128,16 @@ export default function TaskItem({
             {task.title}
           </Text>
           {task.sessions > 0 && (
-            <Text style={[styles.sessions, { color: colors.textSecondary }]}>
-              🍅 {task.sessions} sesi selesai
-            </Text>
+            <View style={styles.sessionsRow}>
+              <Ionicons
+                name="checkmark-circle-outline"
+                size={12}
+                color={colors.textSecondary}
+              />
+              <Text style={[styles.sessions, { color: colors.textSecondary }]}>
+                {task.sessions} sesi selesai
+              </Text>
+            </View>
           )}
           <View style={styles.metaRow}>
             <Text
@@ -167,9 +177,11 @@ export default function TaskItem({
             accessibilityRole="button"
             accessibilityLabel={`Change category for ${task.title}`}
           >
-            <Text style={[styles.metaBtnText, { color: colors.textSecondary }]}>
-              Tag
-            </Text>
+            <Ionicons
+              name="pricetag-outline"
+              size={13}
+              color={colors.textSecondary}
+            />
           </TouchableOpacity>
         )}
         {!task.completed && (
@@ -179,9 +191,13 @@ export default function TaskItem({
             accessibilityRole="button"
             accessibilityLabel={`Change deadline for ${task.title}`}
           >
-            <Text style={[styles.metaBtnText, { color: colors.textSecondary }]}>
-              {task.deadline ? "Clear" : "H+7"}
-            </Text>
+            <Ionicons
+              name={
+                task.deadline ? "calendar-clear-outline" : "calendar-outline"
+              }
+              size={13}
+              color={colors.textSecondary}
+            />
           </TouchableOpacity>
         )}
         {!task.completed && (
@@ -195,29 +211,49 @@ export default function TaskItem({
             onPress={() => onStartTimer(task.id)}
             accessibilityRole="button"
             accessibilityLabel={
-              isActive ? `${task.title} is the active timer task` : `Start timer for ${task.title}`
+              isActive
+                ? `${task.title} is the active timer task`
+                : `Start timer for ${task.title}`
             }
             accessibilityState={{ selected: isActive }}
           >
-            <Text
-              style={[
-                styles.timerBtnText,
-                { color: isActive ? "#fff" : colors.primary },
-              ]}
-            >
-              {isActive ? "▶ Aktif" : "▶"}
-            </Text>
+            <View style={styles.timerBtnContent}>
+              <Ionicons
+                name={isActive ? "play" : "play-outline"}
+                size={13}
+                color={isActive ? "#fff" : colors.primary}
+              />
+              <Text
+                style={[
+                  styles.timerBtnText,
+                  { color: isActive ? "#fff" : colors.primary },
+                ]}
+              >
+                {isActive ? "Aktif" : "Timer"}
+              </Text>
+            </View>
           </TouchableOpacity>
         )}
         <TouchableOpacity
           style={[styles.deleteBtn, { backgroundColor: colors.dangerSoft }]}
-          onPress={() => onDelete(task.id)}
+          onPress={() => {
+            Alert.alert(
+              "Hapus task",
+              `Apakah Anda yakin ingin menghapus "${task.title}"?`,
+              [
+                { text: "Batal", style: "cancel" },
+                {
+                  text: "Hapus",
+                  style: "destructive",
+                  onPress: () => onDelete(task.id),
+                },
+              ],
+            );
+          }}
           accessibilityRole="button"
           accessibilityLabel={`Delete ${task.title}`}
         >
-          <Text style={[styles.deleteBtnText, { color: colors.danger }]}>
-            ✕
-          </Text>
+          <Ionicons name="trash-outline" size={15} color={colors.danger} />
         </TouchableOpacity>
       </View>
     </View>
@@ -239,9 +275,6 @@ const styles = StyleSheet.create({
   },
   orderBtn: {
     padding: 2,
-  },
-  orderBtnText: {
-    fontSize: 10,
   },
   left: {
     flex: 1,
@@ -272,6 +305,11 @@ const styles = StyleSheet.create({
   },
   sessions: {
     fontSize: 11,
+    marginLeft: 4,
+  },
+  sessionsRow: {
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 3,
   },
   metaRow: {
@@ -297,15 +335,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 6,
     borderRadius: 8,
-  },
-  metaBtnText: {
-    fontSize: 11,
-    fontWeight: "700",
+    alignItems: "center",
+    justifyContent: "center",
   },
   timerBtn: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  timerBtnContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
   timerBtnText: {
     fontSize: 12,
@@ -317,8 +360,5 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     alignItems: "center",
     justifyContent: "center",
-  },
-  deleteBtnText: {
-    fontSize: 11,
   },
 });
