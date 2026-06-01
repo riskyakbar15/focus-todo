@@ -32,12 +32,10 @@ export default function TimerScreen() {
   const { activeTaskId, tasks, addSession } = useTaskStore();
   const { addFocusSession } = useStatsStore();
   const activeTask = tasks.find((t) => t.id === activeTaskId);
-  const scheduledNotificationRef = useRef<string | null>(null);
   const isRunningRef = useRef(false);
   const {
     scheduleSessionEndNotification,
     cancelNotification,
-    cancelAllNotifications,
   } = useNotification();
 
   const {
@@ -48,8 +46,10 @@ export default function TimerScreen() {
     toggle,
     reset,
     switchMode,
+    notificationId,
+    setNotificationId,
   } = usePomodoro(async (completedMode) => {
-    scheduledNotificationRef.current = null;
+    setNotificationId(null);
     // Tambah session count ke task aktif jika mode fokus
     if (completedMode === "focus" && activeTaskId) {
       addSession(activeTaskId);
@@ -76,19 +76,17 @@ export default function TimerScreen() {
   // Batalkan notifikasi terjadwal saat keluar layar
   useEffect(() => {
     return () => {
-      if (!isRunningRef.current) {
-        cancelAllNotifications();
+      if (!isRunningRef.current && notificationId) {
+        cancelNotification(notificationId);
       }
     };
-  }, [cancelAllNotifications]);
+  }, [cancelNotification, notificationId]);
 
   const cancelCurrentScheduledNotification = async () => {
-    if (scheduledNotificationRef.current) {
-      await cancelNotification(scheduledNotificationRef.current);
-    } else {
-      await cancelAllNotifications();
+    if (notificationId) {
+      await cancelNotification(notificationId);
     }
-    scheduledNotificationRef.current = null;
+    setNotificationId(null);
   };
 
   const handleToggle = async () => {
@@ -98,10 +96,11 @@ export default function TimerScreen() {
       return;
     }
 
-    scheduledNotificationRef.current = await scheduleSessionEndNotification(
+    const nextNotificationId = await scheduleSessionEndNotification(
       secondsLeft,
       mode,
     );
+    setNotificationId(nextNotificationId);
     toggle();
   };
 
