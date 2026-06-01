@@ -1,65 +1,30 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { TimerMode } from "../types";
+import { TIMER_DURATIONS } from "../constants/timer";
 import {
-  TIMER_DURATIONS,
-  SESSIONS_BEFORE_LONG_BREAK,
-} from "../constants/timer";
-import { activateKeepAwake, deactivateKeepAwake } from "expo-keep-awake";
+  activateKeepAwakeAsync,
+  deactivateKeepAwake,
+} from "expo-keep-awake";
 import { useSound } from "./useSound";
 import { loadTimerDurations, TimerDurations } from "./useTimerSettings";
+import {
+  createPersistedTimerState,
+  getNextMode,
+  readPersistedTimer,
+  restoreTimerState,
+} from "../utils/timerState";
 
 const STORAGE_KEY = "focus_todo_timer";
-
-interface PersistedTimerState {
-  mode: TimerMode;
-  secondsLeft: number;
-  isRunning: boolean;
-  sessionCount: number;
-  updatedAt: number;
-}
-
-function isTimerMode(value: unknown): value is TimerMode {
-  return value === "focus" || value === "short_break" || value === "long_break";
-}
-
-function getNextMode(mode: TimerMode, nextSessionCount: number): TimerMode {
-  if (mode !== "focus") return "focus";
-  return nextSessionCount % SESSIONS_BEFORE_LONG_BREAK === 0
-    ? "long_break"
-    : "short_break";
-}
-
-function readPersistedTimer(raw: string): PersistedTimerState | null {
-  try {
-    const parsed = JSON.parse(raw) as Partial<PersistedTimerState>;
-    if (
-      !isTimerMode(parsed.mode) ||
-      typeof parsed.secondsLeft !== "number" ||
-      typeof parsed.isRunning !== "boolean" ||
-      typeof parsed.sessionCount !== "number" ||
-      typeof parsed.updatedAt !== "number"
-    ) {
-      return null;
-    }
-
-    return {
-      mode: parsed.mode,
-      secondsLeft: Math.max(0, Math.floor(parsed.secondsLeft)),
-      isRunning: parsed.isRunning,
-      sessionCount: Math.max(0, Math.floor(parsed.sessionCount)),
-      updatedAt: parsed.updatedAt,
-    };
-  } catch {
-    return null;
-  }
-}
 
 export function usePomodoro(onSessionComplete?: (mode: TimerMode) => void) {
   const [mode, setMode] = useState<TimerMode>("focus");
   const [secondsLeft, setSecondsLeft] = useState(TIMER_DURATIONS.focus);
   const [isRunning, setIsRunning] = useState(false);
   const [sessionCount, setSessionCount] = useState(0);
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [endsAt, setEndsAt] = useState<number | null>(null);
+  const [notificationId, setNotificationId] = useState<string | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const durationsRef = useRef<TimerDurations | null>(null);
@@ -74,10 +39,16 @@ export function usePomodoro(onSessionComplete?: (mode: TimerMode) => void) {
     setMode(newMode);
     setSecondsLeft(durationsRef.current?.[newMode] ?? TIMER_DURATIONS[newMode]);
     setIsRunning(false);
+    setStartedAt(null);
+    setEndsAt(null);
+    setNotificationId(null);
   }, []);
 
   const handleComplete = useCallback(() => {
     setIsRunning(false);
+    setStartedAt(null);
+    setEndsAt(null);
+    setNotificationId(null);
     onSessionCompleteRef.current?.(mode);
     // play end sound (best-effort)
     try {
@@ -100,7 +71,7 @@ export function usePomodoro(onSessionComplete?: (mode: TimerMode) => void) {
   useEffect(() => {
     if (isRunning) {
       try {
-        activateKeepAwake();
+        void activateKeepAwakeAsync();
       } catch {
         // ignore if module not available
       }
@@ -139,30 +110,18 @@ export function usePomodoro(onSessionComplete?: (mode: TimerMode) => void) {
         return;
       }
 
-      const elapsedSeconds = stored.isRunning
-        ? Math.max(0, Math.floor((Date.now() - stored.updatedAt) / 1000))
-        : 0;
-      const completedWhileAway =
-        stored.isRunning && elapsedSeconds >= stored.secondsLeft;
-      const nextSessionCount =
-        completedWhileAway && stored.mode === "focus"
-          ? stored.sessionCount + 1
-          : stored.sessionCount;
-      const nextMode = completedWhileAway
-        ? getNextMode(stored.mode, nextSessionCount)
-        : stored.mode;
-      const nextSecondsLeft = completedWhileAway
-        ? (durationsRef.current?.[nextMode] ?? TIMER_DURATIONS[nextMode])
-        : Math.max(0, stored.secondsLeft - elapsedSeconds);
-
-      setMode(nextMode);
-      setSecondsLeft(nextSecondsLeft);
-      setSessionCount(nextSessionCount);
-      setIsRunning(stored.isRunning && !completedWhileAway);
+      const restored = restoreTimerState(stored, durationsRef.current);
+      setMode(restored.mode);
+      setSecondsLeft(restored.secondsLeft);
+      setSessionCount(restored.sessionCount);
+      setStartedAt(restored.startedAt);
+      setEndsAt(restored.endsAt);
+      setNotificationId(restored.notificationId);
+      setIsRunning(restored.isRunning);
       setHasLoaded(true);
 
-      if (completedWhileAway) {
-        onSessionCompleteRef.current?.(stored.mode);
+      if (restored.completedMode) {
+        onSessionCompleteRef.current?.(restored.completedMode);
       }
     };
 
@@ -177,18 +136,29 @@ export function usePomodoro(onSessionComplete?: (mode: TimerMode) => void) {
     if (!hasLoaded) return;
 
     const persistTimer = async () => {
-      const state: PersistedTimerState = {
+      const state = createPersistedTimerState({
         mode,
         secondsLeft,
         isRunning,
         sessionCount,
-        updatedAt: Date.now(),
-      };
+        startedAt,
+        endsAt,
+        notificationId,
+      });
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     };
 
     persistTimer();
-  }, [hasLoaded, isRunning, mode, secondsLeft, sessionCount]);
+  }, [
+    endsAt,
+    hasLoaded,
+    isRunning,
+    mode,
+    notificationId,
+    secondsLeft,
+    sessionCount,
+    startedAt,
+  ]);
 
   useEffect(() => {
     if (!hasLoaded) return;
@@ -211,10 +181,25 @@ export function usePomodoro(onSessionComplete?: (mode: TimerMode) => void) {
     };
   }, [handleComplete, hasLoaded, isRunning]);
 
-  const toggle = () => setIsRunning((r) => !r);
+  const toggle = () => {
+    if (isRunning) {
+      setIsRunning(false);
+      setStartedAt(null);
+      setEndsAt(null);
+      return;
+    }
+
+    const now = Date.now();
+    setStartedAt(now);
+    setEndsAt(now + secondsLeft * 1000);
+    setIsRunning(true);
+  };
   const reset = () => {
     setIsRunning(false);
-    setSecondsLeft(TIMER_DURATIONS[mode]);
+    setStartedAt(null);
+    setEndsAt(null);
+    setNotificationId(null);
+    setSecondsLeft(durationsRef.current?.[mode] ?? TIMER_DURATIONS[mode]);
   };
 
   return {
@@ -225,5 +210,7 @@ export function usePomodoro(onSessionComplete?: (mode: TimerMode) => void) {
     toggle,
     reset,
     switchMode,
+    notificationId,
+    setNotificationId,
   };
 }
