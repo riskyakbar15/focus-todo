@@ -6,6 +6,9 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "forceConsistentCasingInFileNames": true,
+    "types": [
+      "jest"
+    ],
     "paths": {
       "@/*": [
         "./*"
