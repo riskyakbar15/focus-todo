@@ -4,6 +4,20 @@ import { FocusSession } from "../types";
 
 const STORAGE_KEY = "focus_todo_focus_sessions";
 
+// Keep a bounded history so stored data cannot grow without limit. The window
+// is large enough to preserve year-long streaks and the 7-day chart.
+const RETENTION_DAYS = 400;
+
+const pruneOldSessions = (
+  sessions: FocusSession[],
+  now = new Date(),
+): FocusSession[] => {
+  const cutoff = new Date(now);
+  cutoff.setDate(cutoff.getDate() - (RETENTION_DAYS - 1));
+  const cutoffKey = getLocalDateKey(cutoff);
+  return sessions.filter((session) => session.date >= cutoffKey);
+};
+
 const createSessionId = () => {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return crypto.randomUUID();
@@ -63,7 +77,12 @@ export const useStatsStore = create<StatsStore>()((set, get) => ({
 
   loadSessions: async () => {
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
-    set({ sessions: parseSessions(raw) });
+    const parsed = parseSessions(raw);
+    const sessions = pruneOldSessions(parsed);
+    set({ sessions });
+    if (sessions.length !== parsed.length) {
+      await save(sessions);
+    }
   },
 
   addFocusSession: async ({ durationSeconds, taskId }) => {
@@ -76,7 +95,7 @@ export const useStatsStore = create<StatsStore>()((set, get) => ({
       taskId,
       createdAt: Date.now(),
     };
-    const sessions = [...currentSessions, session];
+    const sessions = pruneOldSessions([...currentSessions, session]);
     set({ sessions });
     await save(sessions);
   },
