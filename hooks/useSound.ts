@@ -1,35 +1,44 @@
-import { useRef } from "react";
-import { Audio } from "expo-av";
+import { useEffect, useRef } from "react";
+import { createAudioPlayer, type AudioPlayer } from "expo-audio";
 
-// Simple hook to play a short end-of-session sound using expo-av.
-// Uses a public sound URL as a fallback so repo doesn't require bundling an asset.
+// Bundled local chime so playback works offline and has no third-party dependency.
+const SESSION_END_SOUND = require("../assets/session-end.wav");
+
+// Plays a short end-of-session sound using expo-audio.
 export function useSound() {
-  const soundRef = useRef<any | null>(null);
+  const playerRef = useRef<AudioPlayer | null>(null);
+
+  useEffect(() => {
+    return () => {
+      try {
+        playerRef.current?.remove();
+      } catch {
+        // ignore
+      }
+      playerRef.current = null;
+    };
+  }, []);
 
   const playEndSound = async () => {
     try {
-      // public short ding sound
-      const uri =
-        "https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg";
-      if (!soundRef.current) {
-        const { sound } = await Audio.Sound.createAsync({ uri });
-        soundRef.current = sound;
+      if (!playerRef.current) {
+        playerRef.current = createAudioPlayer(SESSION_END_SOUND);
       }
-      await soundRef.current?.replayAsync();
+      playerRef.current.seekTo(0);
+      playerRef.current.play();
     } catch (err) {
-      // ignore errors silently
-      // fallback: try to vibrate (handled by caller if desired)
+      // best-effort: ignore playback failures
       console.warn("useSound: failed to play sound", err);
     }
   };
 
-  const unload = async () => {
+  const unload = () => {
     try {
-      await soundRef.current?.unloadAsync();
-      soundRef.current = null;
+      playerRef.current?.remove();
     } catch {
       // ignore
     }
+    playerRef.current = null;
   };
 
   return { playEndSound, unload };
