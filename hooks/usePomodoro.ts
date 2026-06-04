@@ -2,10 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { TimerMode } from "../types";
 import { TIMER_DURATIONS } from "../constants/timer";
-import {
-  activateKeepAwakeAsync,
-  deactivateKeepAwake,
-} from "expo-keep-awake";
+import { activateKeepAwakeAsync, deactivateKeepAwake } from "expo-keep-awake";
 import { useSound } from "./useSound";
 import { loadTimerDurations, TimerDurations } from "./useTimerSettings";
 import {
@@ -163,23 +160,31 @@ export function usePomodoro(onSessionComplete?: (mode: TimerMode) => void) {
   useEffect(() => {
     if (!hasLoaded) return;
 
-    if (isRunning) {
-      intervalRef.current = setInterval(() => {
-        setSecondsLeft((s) => {
-          if (s <= 1) {
-            handleComplete();
-            return 0;
-          }
-          return s - 1;
-        });
-      }, 1000);
-    } else {
+    if (!isRunning || endsAt === null) {
       if (intervalRef.current) clearInterval(intervalRef.current);
+      return;
     }
+
+    // Derive remaining time from the wall-clock deadline so the countdown
+    // stays accurate even if setInterval ticks late or is throttled.
+    let completed = false;
+    const tick = () => {
+      const remaining = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
+      setSecondsLeft(remaining);
+      if (remaining <= 0 && !completed) {
+        completed = true;
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        handleComplete();
+      }
+    };
+
+    tick();
+    intervalRef.current = setInterval(tick, 250);
+
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [handleComplete, hasLoaded, isRunning]);
+  }, [endsAt, handleComplete, hasLoaded, isRunning]);
 
   const toggle = () => {
     if (isRunning) {
