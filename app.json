@@ -36,7 +36,8 @@
           "defaultChannel": "focus-todo-timer",
           "enableBackgroundRemoteNotifications": false
         }
-      ]
+      ],
+      "expo-audio"
     ]
   }
 }
