@@ -3,12 +3,14 @@ import {
   Pressable,
   SafeAreaView,
   StyleSheet,
-  Text,
   View,
-  TextInput,
   Alert,
   ScrollView,
 } from "react-native";
+import {
+  AppText as Text,
+  AppTextInput as TextInput,
+} from "../../components/AppText";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
 import { useNotification } from "../../hooks/useNotification";
