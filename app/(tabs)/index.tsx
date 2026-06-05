@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
-import { View, Text, FlatList, StyleSheet, SafeAreaView, Pressable } from "react-native";
+import {
+  View,
+  FlatList,
+  StyleSheet,
+  SafeAreaView,
+  Pressable,
+} from "react-native";
+import { AppText as Text } from "../../components/AppText";
 import { useRouter } from "expo-router";
 import { useTaskStore } from "../../store/taskStore";
 import { useTheme } from "../../hooks/useTheme";
@@ -121,7 +128,11 @@ export default function HomeScreen() {
                 <Text
                   style={[
                     styles.filterChipText,
-                    { color: isSelected ? colors.onPrimary : colors.textSecondary },
+                    {
+                      color: isSelected
+                        ? colors.onPrimary
+                        : colors.textSecondary,
+                    },
                   ]}
                 >
                   {filter.label}
