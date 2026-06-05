@@ -1,5 +1,12 @@
 import { useEffect } from "react";
-import { Dimensions, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Dimensions,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
+import { AppText as Text } from "../../components/AppText";
 import { BarChart } from "react-native-chart-kit";
 import { useStatsStore, getLocalDateKey } from "../../store/statsStore";
 import { useTheme } from "../../hooks/useTheme";
@@ -16,7 +23,9 @@ function getLastSevenDays() {
     const date = new Date(today.getTime() - (6 - index) * DAY_MS);
     return {
       key: getLocalDateKey(date),
-      label: new Intl.DateTimeFormat("id-ID", { weekday: "short" }).format(date),
+      label: new Intl.DateTimeFormat("id-ID", { weekday: "short" }).format(
+        date,
+      ),
     };
   });
 }
@@ -45,7 +54,10 @@ export default function StatsScreen() {
   const lastSevenDays = getLastSevenDays();
   const sessionsByDate = new Map<string, number>();
   sessions.forEach((session) => {
-    sessionsByDate.set(session.date, (sessionsByDate.get(session.date) ?? 0) + 1);
+    sessionsByDate.set(
+      session.date,
+      (sessionsByDate.get(session.date) ?? 0) + 1,
+    );
   });
   const datesWithSessions = new Set(sessions.map((session) => session.date));
   const streak = calculateStreak(datesWithSessions);
@@ -68,33 +80,50 @@ export default function StatsScreen() {
         </View>
 
         <View style={styles.summaryGrid}>
-          <View style={[styles.summaryCard, { backgroundColor: colors.surface }]}>
+          <View
+            style={[styles.summaryCard, { backgroundColor: colors.surface }]}
+          >
             <Text style={[styles.summaryValue, { color: colors.primary }]}>
               {todaySessions.length}
             </Text>
-            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>
+            <Text
+              style={[styles.summaryLabel, { color: colors.textSecondary }]}
+            >
               sesi hari ini
             </Text>
           </View>
-          <View style={[styles.summaryCard, { backgroundColor: colors.surface }]}>
+          <View
+            style={[styles.summaryCard, { backgroundColor: colors.surface }]}
+          >
             <Text style={[styles.summaryValue, { color: colors.primary }]}>
               {formatMinutes(todayFocusSeconds)}
             </Text>
-            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>
+            <Text
+              style={[styles.summaryLabel, { color: colors.textSecondary }]}
+            >
               menit fokus
             </Text>
           </View>
-          <View style={[styles.summaryCard, { backgroundColor: colors.surface }]}>
+          <View
+            style={[styles.summaryCard, { backgroundColor: colors.surface }]}
+          >
             <Text style={[styles.summaryValue, { color: colors.primary }]}>
               {streak}
             </Text>
-            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>
+            <Text
+              style={[styles.summaryLabel, { color: colors.textSecondary }]}
+            >
               hari streak
             </Text>
           </View>
         </View>
 
-        <View style={[styles.chartPanel, { backgroundColor: colors.backgroundSoft }]}>
+        <View
+          style={[
+            styles.chartPanel,
+            { backgroundColor: colors.backgroundSoft },
+          ]}
+        >
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
             7 hari terakhir
           </Text>
@@ -130,7 +159,8 @@ export default function StatsScreen() {
             withInnerLines
           />
           <Text style={[styles.chartNote, { color: colors.textMuted }]}>
-            {isDark ? "Mode gelap aktif" : "Mode terang aktif"} · data tersimpan lokal
+            {isDark ? "Mode gelap aktif" : "Mode terang aktif"} · data tersimpan
+            lokal
           </Text>
         </View>
       </ScrollView>
