@@ -1,12 +1,6 @@
 import { useState } from "react";
-import {
-  View,
-  TextInput,
-  TouchableOpacity,
-  Text,
-  StyleSheet,
-  Keyboard,
-} from "react-native";
+import { View, TouchableOpacity, StyleSheet, Keyboard } from "react-native";
+import { AppText as Text, AppTextInput as TextInput } from "./AppText";
 import { useTheme } from "../hooks/useTheme";
 
 interface TaskInputProps {

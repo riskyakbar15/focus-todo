@@ -1,4 +1,5 @@
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { View, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { AppText as Text } from "./AppText";
 import { Ionicons } from "@expo/vector-icons";
 import { Task } from "../types";
 import { useTheme } from "../hooks/useTheme";
