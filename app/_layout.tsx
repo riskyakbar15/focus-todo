@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Text, TextInput } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "@expo-google-fonts/plus-jakarta-sans/useFonts";
 import {
@@ -24,21 +23,6 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (!fontsLoaded) return;
-
-    const textAny = Text as any;
-    const inputAny = TextInput as any;
-
-    textAny.defaultProps = textAny.defaultProps || {};
-    inputAny.defaultProps = inputAny.defaultProps || {};
-
-    textAny.defaultProps.style = [
-      { fontFamily: "PlusJakartaSans_400Regular" },
-      textAny.defaultProps.style,
-    ];
-    inputAny.defaultProps.style = [
-      { fontFamily: "PlusJakartaSans_400Regular" },
-      inputAny.defaultProps.style,
-    ];
 
     SplashScreen.hideAsync().catch(() => {});
   }, [fontsLoaded]);
