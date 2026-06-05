@@ -1,11 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  SafeAreaView,
-} from "react-native";
+import { View, TouchableOpacity, StyleSheet, SafeAreaView } from "react-native";
+import { AppText as Text } from "../components/AppText";
 import { useRouter } from "expo-router";
 import { usePomodoro } from "../hooks/usePomodoro";
 import { useTaskStore } from "../store/taskStore";
@@ -33,10 +28,8 @@ export default function TimerScreen() {
   const { addFocusSession } = useStatsStore();
   const activeTask = tasks.find((t) => t.id === activeTaskId);
   const isRunningRef = useRef(false);
-  const {
-    scheduleSessionEndNotification,
-    cancelNotification,
-  } = useNotification();
+  const { scheduleSessionEndNotification, cancelNotification } =
+    useNotification();
 
   const {
     mode,
